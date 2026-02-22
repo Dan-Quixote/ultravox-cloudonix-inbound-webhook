@@ -1,13 +1,34 @@
 /**
- * Build a CXML response that connects the caller to Ultravox via WebSocket.
- * Cloudonix supports <Connect><Stream> (Twilio WebSocket protocol compatible).
+ * Build a CXML response that connects the caller to Ultravox via WebSocket stream.
  */
 export function buildStreamResponse(joinUrl: string): Response {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+  <Say>Connecting you now.</Say>
   <Connect>
-    <Stream url="${escapeXml(joinUrl)}" name="ultravox" />
+    <Stream url="${escapeXml(joinUrl)}" />
   </Connect>
+  <Say>The call has ended. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+
+  return new Response(xml, {
+    status: 200,
+    headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+  });
+}
+
+/**
+ * Build a CXML response that connects the caller to Ultravox via SIP.
+ * This uses native SIP audio — no WebSocket needed.
+ */
+export function buildSipResponse(sipUri: string): Response {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say>Connecting you now.</Say>
+  <Dial><Sip>${escapeXml(sipUri)}</Sip></Dial>
+  <Say>The call has ended. Goodbye.</Say>
+  <Hangup/>
 </Response>`;
 
   return new Response(xml, {

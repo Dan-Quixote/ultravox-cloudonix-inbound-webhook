@@ -36,7 +36,7 @@ function getDateTimeContext(): { currentDate: string; currentTime: string } {
  * 1. Parse Cloudonix JSON webhook
  * 2. Lookup caller context (optional, 3s timeout)
  * 3. Create Ultravox call with Twilio medium + templateContext
- * 4. Return CXML with <Connect><Stream> to route audio to Ultravox
+ * 4. Return CXML with <Connect><Stream> to route audio via WebSocket
  */
 export async function handleInboundCall(request: Request, env: Env): Promise<Response> {
   try {
@@ -70,11 +70,11 @@ export async function handleInboundCall(request: Request, env: Env): Promise<Res
 
     console.log(`Creating Ultravox call with context:`, JSON.stringify(templateContext));
 
-    // 4. Create Ultravox call with Twilio medium
-    const ultravoxCall = await createUltravoxCall(env, templateContext);
+    // 4. Create Ultravox call with Twilio medium (WebSocket)
+    const ultravoxCall = await createUltravoxCall(env, templateContext, 'twilio');
     console.log(`Ultravox call created: ${ultravoxCall.callId}, joinUrl: ${ultravoxCall.joinUrl}`);
 
-    // 5. Return CXML with <Connect><Stream> to route audio via WebSocket
+    // 5. Return CXML with <Connect><Stream> pointing directly to Ultravox
     return buildStreamResponse(ultravoxCall.joinUrl);
   } catch (err) {
     console.error('Inbound call handler error:', err instanceof Error ? err.message : err);

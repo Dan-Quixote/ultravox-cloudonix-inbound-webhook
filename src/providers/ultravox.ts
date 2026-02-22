@@ -1,13 +1,21 @@
 import type { Env, TemplateContext, UltravoxCallResponse } from '../types';
 
+type MediumType = 'twilio' | 'sip';
+
 /**
- * Create an Ultravox call with Twilio medium and caller context.
- * Returns the joinUrl (wss:// WebSocket URI) for Cloudonix to stream audio to.
+ * Create an Ultravox call with the specified medium and caller context.
+ * - 'twilio': Returns a wss:// joinUrl for WebSocket streaming
+ * - 'sip': Returns a sip: URI for native SIP audio
  */
 export async function createUltravoxCall(
   env: Env,
   templateContext: TemplateContext,
+  mediumType: MediumType = 'twilio',
 ): Promise<UltravoxCallResponse> {
+  const medium = mediumType === 'sip'
+    ? { sip: { incoming: {} } }
+    : { twilio: {} };
+
   const response = await fetch(
     `https://api.ultravox.ai/api/agents/${env.ULTRAVOX_AGENT_ID}/calls`,
     {
@@ -17,7 +25,7 @@ export async function createUltravoxCall(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        medium: { twilio: {} },
+        medium,
         templateContext,
       }),
     },
