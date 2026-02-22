@@ -25,7 +25,7 @@ export default {
 
     // Validate Cloudonix auth
     if (!validateRequest(request, env)) {
-      console.error('Auth validation failed — invalid X-CX-APIKey');
+      console.error('Auth validation failed — invalid Authorization Bearer token');
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
