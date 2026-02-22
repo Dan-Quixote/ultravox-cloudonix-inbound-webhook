@@ -1,0 +1,11 @@
+name = "cloudonix-inbound-worker"
+main = "src/index.ts"
+compatibility_date = "2025-02-14"
+
+[vars]
+ULTRAVOX_AGENT_ID = "baf90fe8-574c-450c-a5f7-8410b670243c"
+
+# Secrets (set via `wrangler secret put`):
+#   ULTRAVOX_API_KEY     - Your Ultravox API key
+#   WEBHOOK_SECRET       - Matches X-CX-APIKey header from Cloudonix
+#   LOOKUP_URL           - URL to fetch caller context (optional)
