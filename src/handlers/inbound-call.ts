@@ -1,7 +1,6 @@
 import type { Env, CloudonixPayload, TemplateContext } from '../types';
 import { lookupCaller } from '../providers/lookup';
-import { createUltravoxCall } from '../providers/ultravox';
-import { buildStreamResponse, buildErrorResponse } from '../cxml';
+import { buildSipDialResponse, buildErrorResponse } from '../cxml';
 
 /**
  * Format current date/time for the agent's template context.
@@ -35,8 +34,10 @@ function getDateTimeContext(): { currentDate: string; currentTime: string } {
  * Core inbound call handler.
  * 1. Parse Cloudonix JSON webhook
  * 2. Lookup caller context (optional, 3s timeout)
- * 3. Create Ultravox call with Twilio medium + templateContext
- * 4. Return CXML with <Connect><Stream> to route audio via WebSocket
+ * 3. Return CXML with <Dial><Sip> + X- headers for caller context
+ *
+ * Ultravox auto-creates the call from the agent's call template when it
+ * receives the SIP INVITE. No separate Ultravox API call needed.
  */
 export async function handleInboundCall(request: Request, env: Env): Promise<Response> {
   try {
@@ -54,10 +55,10 @@ export async function handleInboundCall(request: Request, env: Env): Promise<Res
     // 2. Lookup caller context (non-blocking — falls back to empty if unavailable)
     const callerContext = await lookupCaller(env.LOOKUP_URL, from);
 
-    // 3. Build template context for Ultravox agent
+    // 3. Build template context — passed as SIP X- headers to Ultravox
     const { currentDate, currentTime } = getDateTimeContext();
     const templateContext: TemplateContext = {
-      callerName: callerContext.name || callerName || 'caller',
+      callerName: (callerContext.name || callerName || 'caller').split(' ')[0],
       callerPhone: from,
       callerHistory: callerContext.history || 'new caller',
       currentDate,
@@ -68,14 +69,14 @@ export async function handleInboundCall(request: Request, env: Env): Promise<Res
       ),
     };
 
-    console.log(`Creating Ultravox call with context:`, JSON.stringify(templateContext));
+    // 4. Build SIP URI: agent_{id}@{sip_domain}
+    const sipUri = `sip:agent_${env.ULTRAVOX_AGENT_ID}@${env.ULTRAVOX_SIP_DOMAIN}`;
 
-    // 4. Create Ultravox call with Twilio medium (WebSocket)
-    const ultravoxCall = await createUltravoxCall(env, templateContext, 'twilio');
-    console.log(`Ultravox call created: ${ultravoxCall.callId}, joinUrl: ${ultravoxCall.joinUrl}`);
+    console.log(`Routing to Ultravox via SIP: ${sipUri}`);
+    console.log(`Context headers:`, JSON.stringify(templateContext));
 
-    // 5. Return CXML with <Connect><Stream> pointing directly to Ultravox
-    return buildStreamResponse(ultravoxCall.joinUrl);
+    // 5. Return CXML with <Dial><Sip> + context headers
+    return buildSipDialResponse(sipUri, templateContext);
   } catch (err) {
     console.error('Inbound call handler error:', err instanceof Error ? err.message : err);
     return buildErrorResponse();

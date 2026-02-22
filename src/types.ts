@@ -2,6 +2,7 @@
 export interface Env {
   ULTRAVOX_API_KEY: string;
   ULTRAVOX_AGENT_ID: string;
+  ULTRAVOX_SIP_DOMAIN: string;
   LOOKUP_URL?: string;
   WEBHOOK_SECRET?: string;
 }

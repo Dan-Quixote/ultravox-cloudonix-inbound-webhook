@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" font-family="'SF Mono', 'Fira Code', 'Courier New', monospace">
+
+  <!-- Background -->
+  <rect width="1200" height="600" fill="#F4F4F3" rx="0"/>
+
+  <!-- Subtle grid texture -->
+  <defs>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#E0DED9" stroke-width="0.5"/>
+    </pattern>
+    <!-- Arrow marker - blue -->
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4A90D9"/>
+    </marker>
+    <!-- Arrow marker - orange -->
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FF6B35"/>
+    </marker>
+    <!-- Arrow marker - orange reversed -->
+    <marker id="arrow-orange-rev" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#FF6B35"/>
+    </marker>
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="120%">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#2D2D2D" flood-opacity="0.12"/>
+    </filter>
+    <!-- Sketchy filter -->
+    <filter id="sketchy">
+      <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="3" result="noise" seed="2"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#grid)"/>
+
+  <!-- ===== TITLE AREA ===== -->
+  <text x="600" y="44" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="22" font-weight="700" fill="#2D2D2D" letter-spacing="-0.5">Cloudonix Inbound Call Worker — Architecture</text>
+  <text x="600" y="68" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" fill="#888884" letter-spacing="0.2">Native SIP trunking with caller context enrichment</text>
+
+  <!-- Decorative title underline -->
+  <line x1="200" y1="80" x2="1000" y2="80" stroke="#2D2D2D" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.25"/>
+
+  <!-- ===== MAIN FLOW BOXES ===== -->
+
+  <!-- 1. Phone Caller -->
+  <g filter="url(#shadow)">
+    <rect x="32" y="200" width="130" height="72" rx="10" ry="10" fill="#4A90D9" stroke="#2D5A8E" stroke-width="1.8"/>
+    <!-- Slight sketch wobble on corners via extra tiny rect -->
+    <rect x="33" y="201" width="128" height="70" rx="9" ry="9" fill="none" stroke="#6aaae6" stroke-width="0.6" opacity="0.4"/>
+  </g>
+  <text x="97" y="231" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">Phone</text>
+  <text x="97" y="249" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">Caller</text>
+  <!-- Phone icon suggestion -->
+  <text x="97" y="267" text-anchor="middle" font-size="11" fill="#c8dff5">( PSTN )</text>
+
+  <!-- 2. Zadarma VoIP -->
+  <g filter="url(#shadow)">
+    <rect x="220" y="200" width="140" height="72" rx="10" ry="10" fill="#4A90D9" stroke="#2D5A8E" stroke-width="1.8"/>
+    <rect x="221" y="201" width="138" height="70" rx="9" ry="9" fill="none" stroke="#6aaae6" stroke-width="0.6" opacity="0.4"/>
+  </g>
+  <text x="290" y="231" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">Zadarma</text>
+  <text x="290" y="249" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">VoIP</text>
+  <text x="290" y="267" text-anchor="middle" font-size="11" fill="#c8dff5">( SIP trunk )</text>
+
+  <!-- 3. Cloudonix PBX -->
+  <g filter="url(#shadow)">
+    <rect x="418" y="200" width="148" height="72" rx="10" ry="10" fill="#4A90D9" stroke="#2D5A8E" stroke-width="1.8"/>
+    <rect x="419" y="201" width="146" height="70" rx="9" ry="9" fill="none" stroke="#6aaae6" stroke-width="0.6" opacity="0.4"/>
+  </g>
+  <text x="492" y="231" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">Cloudonix</text>
+  <text x="492" y="249" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">PBX</text>
+  <text x="492" y="267" text-anchor="middle" font-size="11" fill="#c8dff5">( CXML engine )</text>
+
+  <!-- 4. CF Worker — CENTRAL ORCHESTRATOR (slightly larger) -->
+  <g filter="url(#shadow)">
+    <rect x="628" y="185" width="172" height="102" rx="12" ry="12" fill="#4A90D9" stroke="#2D5A8E" stroke-width="2.2"/>
+    <rect x="629" y="186" width="170" height="100" rx="11" ry="11" fill="none" stroke="#6aaae6" stroke-width="0.8" opacity="0.45"/>
+    <!-- Orchestrator badge -->
+    <rect x="655" y="185" width="120" height="18" rx="5" ry="5" fill="#2D5A8E"/>
+    <text x="715" y="197" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#b8d4ef" letter-spacing="0.5">ORCHESTRATOR</text>
+  </g>
+  <text x="714" y="224" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="14" font-weight="700" fill="#FFFFFF">CF Worker</text>
+  <text x="714" y="244" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#ddeeff">Cloudflare</text>
+  <text x="714" y="260" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#ddeeff">Edge Function</text>
+  <text x="714" y="280" text-anchor="middle" font-size="10" fill="#b0cfe8">( CXML builder )</text>
+
+  <!-- 5. Ultravox AI Agent -->
+  <g filter="url(#shadow)">
+    <rect x="868" y="200" width="160" height="72" rx="10" ry="10" fill="#4A90D9" stroke="#2D5A8E" stroke-width="1.8"/>
+    <rect x="869" y="201" width="158" height="70" rx="9" ry="9" fill="none" stroke="#6aaae6" stroke-width="0.6" opacity="0.4"/>
+  </g>
+  <text x="948" y="229" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">Ultravox</text>
+  <text x="948" y="247" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">AI Agent</text>
+  <text x="948" y="265" text-anchor="middle" font-size="11" fill="#c8dff5">( Voice LLM )</text>
+
+  <!-- ===== n8n Webhook BOX (orange, side path) ===== -->
+  <g filter="url(#shadow)">
+    <rect x="640" y="390" width="148" height="72" rx="10" ry="10" fill="#FF6B35" stroke="#c44d18" stroke-width="1.8"/>
+    <rect x="641" y="391" width="146" height="70" rx="9" ry="9" fill="none" stroke="#ffaa80" stroke-width="0.6" opacity="0.45"/>
+  </g>
+  <text x="714" y="420" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">n8n</text>
+  <text x="714" y="438" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="13" font-weight="700" fill="#FFFFFF">Webhook</text>
+  <text x="714" y="456" text-anchor="middle" font-size="11" fill="#ffe0d0">( Caller Lookup )</text>
+
+  <!-- ===== MAIN FLOW ARROWS (blue) ===== -->
+
+  <!-- Caller → Zadarma -->
+  <line x1="162" y1="236" x2="218" y2="236" stroke="#4A90D9" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+  <text x="190" y="228" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" fill="#2D5A8E" font-weight="600">PSTN</text>
+
+  <!-- Zadarma → Cloudonix -->
+  <line x1="360" y1="236" x2="416" y2="236" stroke="#4A90D9" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+  <text x="388" y="228" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" fill="#2D5A8E" font-weight="600">SIP</text>
+
+  <!-- Cloudonix → CF Worker -->
+  <line x1="566" y1="236" x2="626" y2="236" stroke="#4A90D9" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+  <text x="596" y="228" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" fill="#2D5A8E" font-weight="600">Webhook</text>
+
+  <!-- CF Worker → Ultravox (via Cloudonix, label on arrow) -->
+  <!-- This is the final Cloudonix→Ultravox path, but worker returns CXML first -->
+  <!-- Worker → Cloudonix (return arrow, below) -->
+  <path d="M 628 260 Q 580 310 566 280 Q 555 260 566 248" stroke="#4A90D9" stroke-width="2" fill="none" marker-end="url(#arrow-blue)" stroke-dasharray="5,3"/>
+  <text x="578" y="308" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9.5" fill="#2D5A8E" font-weight="600">CXML +</text>
+  <text x="578" y="320" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9.5" fill="#2D5A8E" font-weight="600">SIP Headers</text>
+
+  <!-- Cloudonix → Ultravox (SIP INVITE) -->
+  <path d="M 566 218 Q 620 155 800 170 Q 840 172 866 210" stroke="#4A90D9" stroke-width="2.2" fill="none" marker-end="url(#arrow-blue)"/>
+  <text x="710" y="153" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" fill="#2D5A8E" font-weight="600">SIP INVITE + X-Headers</text>
+
+  <!-- ===== ORANGE DASHED PATH (n8n side path) ===== -->
+
+  <!-- CF Worker ↔ n8n: down from CF Worker -->
+  <line x1="714" y1="288" x2="714" y2="388" stroke="#FF6B35" stroke-width="2.2" stroke-dasharray="7,4" marker-end="url(#arrow-orange)"/>
+  <!-- return arrow (offset slightly) -->
+  <line x1="722" y1="388" x2="722" y2="288" stroke="#FF6B35" stroke-width="2.2" stroke-dasharray="7,4" marker-end="url(#arrow-orange)"/>
+
+  <!-- Label for n8n bidirectional arrow -->
+  <rect x="730" y="320" width="130" height="36" rx="5" fill="#FFF5F0" stroke="#FF6B35" stroke-width="1" opacity="0.92"/>
+  <text x="795" y="335" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9.5" fill="#c44d18" font-weight="700">Caller Context</text>
+  <text x="795" y="349" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9.5" fill="#c44d18" font-weight="700">Lookup</text>
+
+  <!-- ===== LEGEND ===== -->
+  <g transform="translate(40, 500)">
+    <rect x="0" y="0" width="280" height="72" rx="8" fill="#FFFFFF" stroke="#D8D6D1" stroke-width="1.2" opacity="0.9"/>
+    <text x="14" y="20" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" font-weight="700" fill="#2D2D2D">Legend</text>
+    <!-- Main flow -->
+    <line x1="14" y1="38" x2="54" y2="38" stroke="#4A90D9" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
+    <text x="62" y="42" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#2D2D2D">Main call flow</text>
+    <!-- Context enrichment -->
+    <line x1="14" y1="58" x2="54" y2="58" stroke="#FF6B35" stroke-width="2.5" stroke-dasharray="6,3" marker-end="url(#arrow-orange)"/>
+    <text x="62" y="62" font-family="'SF Mono', 'Fira Code', monospace" font-size="11" fill="#2D2D2D">Context enrichment</text>
+  </g>
+
+  <!-- ===== COMPONENT LABELS (below boxes) ===== -->
+  <text x="97" y="290" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#888884">1. Origin</text>
+  <text x="290" y="290" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#888884">2. VoIP Provider</text>
+  <text x="492" y="290" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#888884">3. PBX / SIP Server</text>
+  <text x="714" y="302" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#888884">4. Edge Orchestrator</text>
+  <text x="948" y="290" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#888884">5. AI Voice Engine</text>
+  <text x="714" y="476" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#ffe0d0">6. Enrichment Service</text>
+
+  <!-- ===== STEP NUMBER BADGES ===== -->
+  <circle cx="97" cy="196" r="10" fill="#2D2D2D"/>
+  <text x="97" y="200" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF">1</text>
+
+  <circle cx="290" cy="196" r="10" fill="#2D2D2D"/>
+  <text x="290" y="200" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF">2</text>
+
+  <circle cx="492" cy="196" r="10" fill="#2D2D2D"/>
+  <text x="492" y="200" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF">3</text>
+
+  <circle cx="714" cy="181" r="10" fill="#2D2D2D"/>
+  <text x="714" y="185" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF">4</text>
+
+  <circle cx="948" cy="196" r="10" fill="#2D2D2D"/>
+  <text x="948" y="200" text-anchor="middle" font-size="10" font-weight="700" fill="#FFFFFF">5</text>
+
+  <!-- ===== FLOW SEQUENCE DESCRIPTION ===== -->
+  <g transform="translate(370, 500)">
+    <rect x="0" y="0" width="790" height="72" rx="8" fill="#FFFFFF" stroke="#D8D6D1" stroke-width="1.2" opacity="0.85"/>
+    <text x="16" y="20" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" font-weight="700" fill="#2D2D2D">Call Flow Sequence</text>
+    <text x="16" y="37" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" fill="#555551">
+      <tspan fill="#4A90D9" font-weight="700">①</tspan> Caller dials PSTN number
+      <tspan dx="8" fill="#4A90D9" font-weight="700">→</tspan>
+      <tspan dx="2" fill="#4A90D9" font-weight="700">②</tspan> Zadarma routes via SIP trunk
+      <tspan dx="8" fill="#4A90D9" font-weight="700">→</tspan>
+      <tspan dx="2" fill="#4A90D9" font-weight="700">③</tspan> Cloudonix PBX fires webhook
+    </text>
+    <text x="16" y="57" font-family="'SF Mono', 'Fira Code', monospace" font-size="10" fill="#555551">
+      <tspan fill="#4A90D9" font-weight="700">④</tspan> CF Worker enriches with n8n lookup, returns CXML
+      <tspan dx="8" fill="#4A90D9" font-weight="700">→</tspan>
+      <tspan dx="2" fill="#4A90D9" font-weight="700">③→⑤</tspan> Cloudonix sends SIP INVITE with X-Headers to Ultravox
+    </text>
+  </g>
+
+  <!-- Corner decoration - subtle brand mark -->
+  <text x="1170" y="590" text-anchor="end" font-family="'SF Mono', 'Fira Code', monospace" font-size="9" fill="#BBBBBB">cloudonix-inbound-worker</text>
+
+</svg>

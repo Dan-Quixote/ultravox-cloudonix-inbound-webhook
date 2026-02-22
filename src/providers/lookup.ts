@@ -1,9 +1,9 @@
 import type { CallerContext } from '../types';
 
 /**
- * Look up caller context from a configurable external service.
- * The LOOKUP_URL receives a GET request with ?phone={number}
- * and should return JSON matching CallerContext.
+ * Look up caller context from a configurable external service (n8n webhook).
+ * POSTs { call_inbound: { from_number } } and expects a JSON response
+ * matching CallerContext (name, history, etc.).
  *
  * If no LOOKUP_URL is configured or the lookup fails, returns empty context.
  */
@@ -16,12 +16,17 @@ export async function lookupCaller(
   }
 
   try {
-    const url = new URL(lookupUrl);
-    url.searchParams.set('phone', phone);
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
+    const response = await fetch(lookupUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        call_inbound: {
+          from_number: phone,
+        },
+      }),
       signal: AbortSignal.timeout(3000), // 3s max — don't keep the caller waiting
     });
 
