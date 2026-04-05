@@ -1,10 +1,28 @@
 /** Environment bindings for the CF Worker */
 export interface Env {
   ULTRAVOX_API_KEY: string;
+  /** Fallback agent ID when no KV routing match is found */
   ULTRAVOX_AGENT_ID: string;
   ULTRAVOX_SIP_DOMAIN: string;
   LOOKUP_URL?: string;
   WEBHOOK_SECRET?: string;
+  /** Twilio Auth Token — used to validate webhook signatures */
+  TWILIO_AUTH_TOKEN?: string;
+  /** KV namespace mapping DIDs to agent configs (multi-tenant routing) */
+  AGENT_ROUTING?: KVNamespace;
+  /** Base URL for the shared booking tools worker */
+  BOOKING_TOOLS_URL?: string;
+}
+
+/** Per-DID agent configuration stored in AGENT_ROUTING KV */
+export interface AgentRoute {
+  agentId: string;
+  sipDomain: string;
+  lookupUrl?: string;
+  /** Organization ID for the shared booking tools worker */
+  organizationId?: string;
+  /** IANA timezone for date/time context (defaults to Europe/Madrid) */
+  timezone?: string;
 }
 
 /** Cloudonix inbound webhook payload */
