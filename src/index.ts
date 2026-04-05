@@ -1,9 +1,8 @@
 import type { Env } from './types';
 import { validateRequest } from './auth';
 import { handleInboundCall } from './handlers/inbound-call';
+import { handleTwilioInbound } from './handlers/twilio-inbound';
 import { handleCallStatus } from './handlers/call-status';
-import { handleWebSocketDebug } from './handlers/ws-debug';
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -14,23 +13,17 @@ export default {
       return Response.json({
         status: 'ok',
         service: 'cloudonix-inbound-worker',
-        agentConfigured: !!env.ULTRAVOX_AGENT_ID,
-        lookupConfigured: !!env.LOOKUP_URL,
       });
-    }
-
-    // WebSocket proxy for debugging (no auth — Cloudonix connects directly)
-    if (path === '/ws-proxy') {
-      const target = url.searchParams.get('target');
-      if (!target) {
-        return Response.json({ error: 'Missing target param' }, { status: 400 });
-      }
-      return handleWebSocketDebug(request, target);
     }
 
     // Only accept POST for webhook endpoints
     if (request.method !== 'POST') {
       return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    }
+
+    // Twilio inbound — no Cloudonix auth, Twilio sends form-urlencoded
+    if (path === '/twilio-inbound') {
+      return handleTwilioInbound(request, env);
     }
 
     // Skip auth for stream-status callbacks (Cloudonix sends them without Bearer)
@@ -59,7 +52,7 @@ export default {
 
       default:
         return Response.json(
-          { error: `Unknown route: ${path}. Use /inbound or /status` },
+          { error: `Unknown route: ${path}. Use /inbound, /twilio-inbound, or /status` },
           { status: 404 },
         );
     }
