@@ -1,13 +1,15 @@
 {
   "name": "cloudonix-inbound-worker",
   "version": "1.0.0",
-  "description": "Cloudonix webhook handler — routes inbound calls to Ultravox voice AI via WebSocket streaming",
+  "description": "BookingMate inbound call router for direct Twilio and Cloudonix compatibility routes",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail --format pretty",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "test": "bun test",
+    "check": "tsc --noEmit"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",

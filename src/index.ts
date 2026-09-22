@@ -4,7 +4,7 @@ import { handleInboundCall } from './handlers/inbound-call';
 import { handleTwilioInbound } from './handlers/twilio-inbound';
 import { handleCallStatus } from './handlers/call-status';
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -23,7 +23,7 @@ export default {
 
     // Twilio inbound — no Cloudonix auth, Twilio sends form-urlencoded
     if (path === '/twilio-inbound') {
-      return handleTwilioInbound(request, env);
+      return handleTwilioInbound(request, env, ctx);
     }
 
     // Skip auth for stream-status callbacks (Cloudonix sends them without Bearer)
@@ -45,7 +45,7 @@ export default {
     // Route to handler
     switch (path) {
       case '/inbound':
-        return handleInboundCall(request, env);
+        return handleInboundCall(request, env, ctx);
 
       case '/status':
         return handleCallStatus(request);

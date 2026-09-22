@@ -7,28 +7,33 @@ import { validateTwilioSignature } from '../twilio-auth';
  * Twilio inbound call handler.
  * Twilio sends form-urlencoded POST with From, To, CallSid, etc.
  *
- * 1. Validate Twilio request signature
- * 2. Parse Twilio webhook payload
- * 3. Resolve agent by DID (KV lookup, falls back to env)
+ * 1. Parse raw body with URLSearchParams (not FormData — more reliable for URL-encoded)
+ * 2. Validate Twilio request signature
+ * 3. Resolve agent by DID (unknown numbers fail closed)
  * 4. Fetch caller context + availability from booking worker (or legacy lookup)
  * 5. Return TwiML with <Dial><Sip> + context as URI params
  */
-export async function handleTwilioInbound(request: Request, env: Env): Promise<Response> {
+export async function handleTwilioInbound(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   try {
-    // Twilio sends application/x-www-form-urlencoded
-    const formData = await request.formData();
+    // Read raw body for both auth and parsing
+    const body = await request.text();
+    const params = new URLSearchParams(body);
 
     // Validate Twilio signature before processing
-    const isValid = await validateTwilioSignature(request, formData, env);
+    const isValid = await validateTwilioSignature(request, params, env);
     if (!isValid) {
       console.error('[twilio] Rejected — invalid signature');
       return new Response('Unauthorized', { status: 403 });
     }
 
-    const from = formData.get('From') as string;
-    const to = formData.get('To') as string;
-    const callSid = formData.get('CallSid') as string;
-    const callerName = formData.get('CallerName') as string | null;
+    const from = params.get('From') || '';
+    const to = params.get('To') || '';
+    const callSid = params.get('CallSid') || '';
+    const callerName = params.get('CallerName');
 
     console.log(`[twilio] Inbound call: from=${from} to=${to} sid=${callSid}`);
 
@@ -38,10 +43,21 @@ export async function handleTwilioInbound(request: Request, env: Env): Promise<R
     }
 
     // Resolve agent by DID
-    const agent = await resolveAgent(env, to || '');
+    const agent = await resolveAgent(env, to || '', {
+      provider: 'twilio',
+      waitUntil: ctx.waitUntil.bind(ctx),
+    });
+    if (!agent) {
+      console.error(
+        JSON.stringify({ event: 'inbound_call_rejected', provider: 'twilio', reason: 'unknown_did', did: to }),
+      );
+      return buildTwimlErrorResponse(
+        'Sorry, this number is temporarily unavailable. Please contact the business directly.',
+      );
+    }
 
     // Build caller context (booking worker or legacy lookup)
-    const templateContext = await buildCallContext(env, agent, from, callerName || undefined);
+    const templateContext = await buildCallContext(env, agent, from, callerName || undefined, callSid);
 
     // Add phone numbers for post-call pipeline extraction via SIP headers
     templateContext.fromNumber = from;
