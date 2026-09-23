@@ -3,9 +3,26 @@ main = "src/index.ts"
 compatibility_date = "2025-02-14"
 
 [vars]
+# Production always rejects unknown DIDs. The default agent values are retained
+# only for an explicitly enabled non-production legacy mode.
+ENVIRONMENT = "production"
 ULTRAVOX_AGENT_ID = "baf90fe8-574c-450c-a5f7-8410b670243c"
+ULTRAVOX_SIP_DOMAIN = "ultravox.uvx-k5w2iwcbsj.voximplant.com"
+# Shared booking tools worker — provides caller history + pre-cached availability
+BOOKING_TOOLS_URL = "https://booking-tools-shared.tight-violet-f167.workers.dev"
+# Exact URL registered on the Twilio numbers; signature validation depends on it.
+TWILIO_WEBHOOK_URL = "https://cloudonix-inbound-worker.tight-violet-f167.workers.dev/twilio-inbound"
+
+# Multi-tenant routing: DID -> { agentId, sipDomain, lookupUrl }
+[[kv_namespaces]]
+binding = "AGENT_ROUTING"
+id = "11dbaaedf5354527b34d1d7d37537705"
 
 # Secrets (set via `wrangler secret put`):
-#   ULTRAVOX_API_KEY     - Your Ultravox API key
+#   ULTRAVOX_API_KEY     - Your Ultravox API key (still needed for prompt updates)
 #   WEBHOOK_SECRET       - Matches X-CX-APIKey header from Cloudonix
-#   LOOKUP_URL           - URL to fetch caller context (optional)
+#   TWILIO_AUTH_TOKEN    - Primary Auth Token from the Twilio region receiving calls (currently IE1)
+#   BOOKING_TOOLS_SIGNING_SECRET - Shared root for tenant/action-bound booking tool requests
+#   ROUTING_ALERT_WEBHOOK_URL - Operational alert webhook for rejected DIDs
+#   LOOKUP_URL           - URL to fetch caller context (optional, fallback for non-KV routes)
+# Non-production only: ALLOW_LEGACY_AGENT_FALLBACK = "true"

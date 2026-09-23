@@ -1,26 +1,44 @@
-# cloudonix-inbound-worker
+# BookingMate inbound call router
 
-A Cloudflare Worker that bridges inbound phone calls from [Cloudonix](https://www.cloudonix.io/) (cloud PBX) to [Ultravox](https://www.ultravox.ai/) (AI voice agents) via native SIP trunking, with optional caller context enrichment from any HTTP webhook.
+A Cloudflare Worker that connects inbound phone calls to [Ultravox](https://www.ultravox.ai/) AI receptionists. It supports two different telephony routes: Twilio calls the Worker directly, while providers such as Zadarma or NetLIP can use [Cloudonix](https://www.cloudonix.io/) as a programmable compatibility bridge.
 
-Built for production use at Los Naranjos Golf Club, but designed as a generic bridge adaptable to any Ultravox-powered voice agent.
+Cloudonix is not in the current UK Twilio call path. See [the routing and security source of truth](docs/call-routing-and-security.md) before changing either route.
+
+Created and tested on the fictitious Los Naranjos Golf Club in Seville.
+
+## Quick Start
+
+1. **Create your Ultravox agent** — Set up a SIP-enabled agent in the [Ultravox dashboard](https://www.ultravox.ai/) and note the agent ID and SIP domain.
+2. **Set up your Cloudonix account** — Sign up at [Cloudonix](https://www.cloudonix.io/) and create a domain. Set the domain's voice application webhook to your Worker URL (step 4).
+3. **Point your Zadarma number to Cloudonix** — In Zadarma, go to *Your numbers* → select your number → *External server* tab → enable "External server (SIP URI)" → set the server address to `yournumber@border.cloudonix.io`.
+4. **Deploy this Worker** — Clone this repo, add your agent ID and SIP domain to `wrangler.toml`, then run `bun run deploy`.
+5. **Call your number** — Your Zadarma number now routes through Cloudonix → this Worker → Ultravox, with caller context injected automatically.
 
 ## How It Works
 
 ```
-Caller
-  → VoIP Provider (e.g. Zadarma, Twilio)
-  → Cloudonix PBX (border.cloudonix.io)
-  → This Cloudflare Worker (/inbound webhook)
-  → [Optional] Caller context lookup (n8n, Make, any HTTP endpoint) — 3s timeout
-  → CXML response with <Dial><Sip> + X-headers
-  → Ultravox SIP agent (receives context via X-headers → template variables)
+UK:    caller → business forwards call → Twilio → Worker /twilio-inbound → Ultravox
+Spain: caller → business forwards call → Zadarma/NetLIP → Cloudonix → Worker /inbound → Ultravox
 ```
 
-1. Your VoIP provider receives the inbound call and forwards it to Cloudonix.
-2. Cloudonix fires a JSON webhook to this Worker's `/inbound` endpoint.
-3. The Worker optionally POSTs to a configurable lookup webhook to fetch caller context (name, booking history, etc.) from your CRM or booking system — with a hard 3-second timeout so the caller is never kept waiting.
-4. The Worker returns CXML instructing Cloudonix to dial the Ultravox SIP agent URI, passing caller context as SIP `X-` headers.
-5. Ultravox receives the SIP INVITE, maps the `X-` headers to template variables in the agent's system prompt, and the AI handles the call with full caller context from the first word.
+In both cases the Worker uses the called BookingMate number to find the correct business and receptionist, optionally loads booking context, and returns instructions that connect the same live call to the correct Ultravox SIP agent.
+
+## Why This Architecture Exists
+
+This Worker exists because of a gap between three services that don't natively connect the way we need them to:
+
+1. **Ultravox has no inbound webhook.** Unlike Retell (which fires a pre-connect webhook and accepts `dynamic_variables` in the response), Ultravox only receives SIP calls. There is no built-in hook to inject caller-specific context (name, booking history) before the agent speaks. Ultravox supports `templateContext` at call creation time via the API, but if a SIP call arrives directly, there's no middleware to populate it.
+
+2. **Zadarma has no dynamic call routing.** Zadarma is the most common VoIP provider in Spain, but its webhooks are fire-and-forget (`notify_start`, etc.) — you cannot return a routing decision in the webhook response. Calls can only forward to a fixed SIP destination. There's no way to do a CRM lookup and modify the call routing based on the result.
+
+3. **Twilio would solve this, but it cannot currently supply the Spanish number setup BookingMate requires.** Twilio's programmable voice can do the lookup + SIP forwarding in a single webhook response. The required Spanish number type and availability are the constraint for our use case.
+
+**Cloudonix fills the gap.** It's a programmable telephony routing layer that fires an HTTP webhook on inbound calls and **waits for a CXML response** (TwiML-compatible). This gives us the middleware layer to:
+- Look up the caller in a CRM/booking system
+- Inject that context as SIP `X-` headers
+- Route the call to Ultravox with full personalization — all in a single request-response cycle
+
+Twilio uses this Worker directly for tenant routing and pre-call context; it does not need Cloudonix. The Cloudonix route remains necessary for supported providers that cannot perform this programmable request-response step themselves.
 
 ## Key Features
 
@@ -30,7 +48,7 @@ Caller
 - **3-second lookup timeout** — if the CRM lookup is slow, the call proceeds with a generic greeting rather than keeping the caller waiting
 - **Date/time injection** — current date and time (configurable timezone) injected into every call for context-aware agent responses
 - **First-name personalization** — full name from CRM is trimmed to first name for natural greetings
-- **Webhook authentication** — optional Bearer token validation on the `/inbound` endpoint
+- **Webhook authentication** — required Bearer token validation on the `/inbound` endpoint
 - **Health check endpoint** — `/health` for uptime monitoring
 - **Zero cold-start overhead** — Cloudflare Workers edge runtime, globally distributed
 
@@ -154,11 +172,20 @@ ULTRAVOX_SIP_DOMAIN = "your-sip-domain.example.com"
 # Required: authenticates Cloudonix webhook requests
 wrangler secret put WEBHOOK_SECRET
 
+# Required for the direct Twilio route: IE1 primary Auth Token
+wrangler secret put TWILIO_AUTH_TOKEN
+
+# Required for authenticated pre-call booking context
+wrangler secret put BOOKING_TOOLS_SIGNING_SECRET
+
+# Required for operational alerts on rejected DID routing
+wrangler secret put ROUTING_ALERT_WEBHOOK_URL
+
 # Optional: enables caller context lookup (n8n, Make, or any HTTP endpoint)
 wrangler secret put LOOKUP_URL
 ```
 
-`WEBHOOK_SECRET` should match the API key you configure in Cloudonix's webhook settings. If not set, authentication is skipped (not recommended for production).
+`WEBHOOK_SECRET` must match the API key configured in Cloudonix's webhook settings. If it is missing or wrong, the Worker rejects the request.
 
 `LOOKUP_URL` is the full URL of your caller context webhook. Omit it entirely if you don't need CRM lookups.
 
