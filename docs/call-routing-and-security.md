@@ -72,8 +72,8 @@ without routing the call to a fallback tenant.
 
 ## ENG-40 authenticated booking-tool contract
 
-Knowing an `organization_id` is not authority. Each booking-tool request now needs a Bearer token derived for the exact organization and action plus a signed call ID and fresh timestamp. Every request also receives short-lived replay detection. The same root secret is installed separately in the agent provisioner, inbound Worker, and booking-tools Worker; it is never committed.
+Knowing an `organization_id` is not authority. Each booking-tool request needs a Bearer token derived for the exact organization and action. Signature, timestamp-freshness and replay enforcement were deferred in the 2026-09-26 launch repair and remain separate hardening under ENG-40. Headers may still be sent, but the shared booking Worker does not require them. The same root secret is installed separately in the agent provisioner, inbound Worker, and booking-tools Worker; it is never committed.
 
-Ultravox agents receive per-action tokens through temporary-tool `authTokens` and a per-organization call signature secret through call-template `sharedSecrets`. The inbound Worker generates the same headers for its pre-call `get-bookings` and `check-availability` requests.
+Ultravox agents receive per-action tokens through canonical durable-tool selections' `authTokens`, each with a locked organization override. ENG-55 applies this contract to creation, retries, resume, backfill and prompt writes, with persisted readback verification. The inbound Worker uses the same scoped Bearer contract for pre-call `get-bookings` and `check-availability` requests; optional signature headers do not change that requirement.
 
-Enforcement must be deployed last, after existing agents are backfilled and the inbound Worker is signing requests. Otherwise live booking tools and pre-call context will fail closed, as designed.
+Any future signature/replay enforcement must be validated against real Ultravox HTTP calls and inbound lookups before rollout. Retain the working scoped Bearer contract while that hardening is deferred. Twilio webhook verification (ENG-41) is a separate inbound boundary and remains fail-closed.
