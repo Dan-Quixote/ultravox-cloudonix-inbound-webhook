@@ -16,6 +16,8 @@ export interface Env {
   AGENT_ROUTING?: KVNamespace;
   /** Base URL for the shared booking tools worker */
   BOOKING_TOOLS_URL?: string;
+  /** Service binding to the shared booking tools worker (required for pre-call lookups) */
+  BOOKING_TOOLS?: Fetcher;
   /** Root secret for authenticated, tenant-bound booking tool requests */
   BOOKING_TOOLS_SIGNING_SECRET?: string;
   /** Explicit temporary fallback for non-production testing only */

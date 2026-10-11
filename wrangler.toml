@@ -13,6 +13,12 @@ BOOKING_TOOLS_URL = "https://booking-tools-shared.tight-violet-f167.workers.dev"
 # Exact URL registered on the Twilio numbers; signature validation depends on it.
 TWILIO_WEBHOOK_URL = "https://cloudonix-inbound-worker.tight-violet-f167.workers.dev/twilio-inbound"
 
+# Pre-call requests to the booking worker must use this binding. Cloudflare
+# blocks a Worker fetching another same-account Worker's workers.dev URL (404).
+[[services]]
+binding = "BOOKING_TOOLS"
+service = "booking-tools-shared"
+
 # Multi-tenant routing: DID -> { agentId, sipDomain, lookupUrl }
 [[kv_namespaces]]
 binding = "AGENT_ROUTING"
