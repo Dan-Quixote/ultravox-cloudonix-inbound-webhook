@@ -89,12 +89,7 @@ export function buildTwimlSipDialResponse(
   context: Record<string, string>,
 ): Response {
   // Encode context as SIP URI parameters: ?X-Caller-Name=Dan&X-Current-Date=...
-  const uriParams = Object.entries(context)
-    .map(([key, value]) => {
-      const headerName = `X-${camelToKebab(key)}`;
-      return `${encodeURIComponent(headerName)}=${encodeURIComponent(value)}`;
-    })
-    .join('&');
+  const uriParams = encodeTwimlSipHeaders(fitTwilioHeaderBudget(context));
 
   const sipWithParams = uriParams ? `${sipUri}?${uriParams}` : sipUri;
 
@@ -112,6 +107,53 @@ export function buildTwimlSipDialResponse(
     status: 200,
     headers: { 'Content-Type': 'text/xml; charset=utf-8' },
   });
+}
+
+/**
+ * Twilio rejects <Sip> headers of 1024 characters or more (error 21227).
+ * Kept below that with margin, measured on the encoded form.
+ */
+export const TWILIO_SIP_HEADER_BUDGET = 1000;
+
+function encodeTwimlSipHeaders(context: Record<string, string>): string {
+  return Object.entries(context)
+    .map(([key, value]) => {
+      const headerName = `X-${camelToKebab(key)}`;
+      return `${encodeURIComponent(headerName)}=${encodeURIComponent(value)}`;
+    })
+    .join('&');
+}
+
+/**
+ * Trim the variable-length context until the encoded headers fit Twilio's
+ * limit: drop the furthest availability days first, then the latest bookings.
+ */
+export function fitTwilioHeaderBudget(
+  context: Record<string, string>,
+  budget: number = TWILIO_SIP_HEADER_BUDGET,
+): Record<string, string> {
+  const fitted = { ...context };
+  const trimmable: Array<[string, string]> = [
+    ['availability', ' | '],
+    ['callerHistory', '; '],
+  ];
+
+  for (const [key, separator] of trimmable) {
+    while (encodeTwimlSipHeaders(fitted).length >= budget && fitted[key]) {
+      const parts = fitted[key].split(separator);
+      parts.pop();
+      fitted[key] = parts.join(separator);
+    }
+  }
+
+  const length = encodeTwimlSipHeaders(fitted).length;
+  if (fitted.availability !== context.availability || fitted.callerHistory !== context.callerHistory) {
+    console.warn(JSON.stringify({ event: 'sip_headers_trimmed', length, budget }));
+  }
+  if (length >= budget) {
+    console.error(JSON.stringify({ event: 'sip_headers_over_budget', length, budget }));
+  }
+  return fitted;
 }
 
 /** Build a TwiML error response */

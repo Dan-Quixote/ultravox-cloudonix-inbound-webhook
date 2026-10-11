@@ -1,6 +1,6 @@
 import type { Env, AgentRoute, TemplateContext } from '../types';
 import { lookupCaller } from '../providers/lookup';
-import { lookupFromBookingWorker } from '../providers/booking';
+import { lookupFromBookingWorker, type BookingFetch } from '../providers/booking';
 
 /**
  * Format current date/time for the agent's template context.
@@ -188,7 +188,18 @@ export async function buildCallContext(
       };
     }
 
+    // A plain fetch to the workers.dev URL 404s inside Cloudflare; the
+    // service binding is the working path. fetch remains for local dev only.
+    const bookingTools = env.BOOKING_TOOLS;
+    if (!bookingTools) {
+      console.error(JSON.stringify({ event: 'booking_binding_missing', organizationId: agent.organizationId }));
+    }
+    const bookingFetch: BookingFetch = bookingTools
+      ? (input, init) => bookingTools.fetch(input, init)
+      : (input, init) => fetch(input, init);
+
     const result = await lookupFromBookingWorker(
+      bookingFetch,
       env.BOOKING_TOOLS_URL,
       agent.organizationId,
       from,
